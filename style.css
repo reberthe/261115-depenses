@@ -220,3 +220,55 @@ button:disabled { opacity: 0.5; cursor: default; }
   .ligne-montant { width: 80px; }
   .selecteur-texte { min-width: 120px; }
 }
+
+/* ---------- Fixes : vue Année ---------- */
+.selecteur-texte.annee { min-width: 70px; }
+.legende { display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--texte2); margin-bottom: 10px; flex-wrap: wrap; }
+.legende > span { display: inline-flex; align-items: center; gap: 6px; }
+.temoin { display: inline-block; width: 22px; height: 14px; border-radius: 4px; }
+.temoin.payee { background: var(--bleu); }
+.temoin.cote { background: var(--orange-fond); border: 1.5px dashed var(--orange-trait); }
+.temoin.point { width: 10px; height: 10px; border-radius: 999px; background: var(--texte); }
+
+.grille-cadre { padding: 0; overflow-x: auto; }
+.grille { min-width: 1080px; padding: 0 12px 8px; }
+.grille-ligne {
+  display: grid; grid-template-columns: 190px 80px 92px repeat(12, minmax(0, 1fr));
+  gap: 4px; align-items: center; min-height: 40px; border-top: 1px solid var(--trait-leger);
+}
+.grille-entete { border-top: none; font-size: 12px; font-weight: 600; color: var(--texte2); min-height: 44px; }
+.grille-mois { height: 30px; border: none; border-radius: 999px; background: none; color: var(--texte2); font-weight: 600; font-size: 12px; cursor: pointer; }
+.grille-mois.courant { background: var(--fonce); color: var(--sur-fonce); }
+.grille-groupe { font-weight: 700; font-size: 14px; padding: 14px 0 4px; }
+.grille-nom { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grille-prevu { font-size: 13px; color: var(--texte2); }
+.grille-echeance { font-size: 12px; color: var(--texte2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.a-droite { text-align: right; padding-right: 6px; }
+
+.case {
+  position: relative; height: 34px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  font-variant-numeric: tabular-nums; cursor: pointer; padding: 0 2px;
+}
+.case.payee { border: none; background: var(--bleu); color: var(--sur-bleu); }
+.case.cote { background: var(--orange-fond); border: 1.5px dashed var(--orange-trait); color: var(--orange-texte); }
+.case.a-confirmer { background: var(--erreur); color: #FFFFFF; border: none; }
+.vide-case { display: block; height: 34px; }
+.point-echeance {
+  position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; border-radius: 999px;
+  background: var(--texte); border: 2px solid var(--carte);
+}
+
+.grille-totaux { border-top: 2px solid var(--trait); margin-top: 4px; }
+.grille-total { min-height: 30px; border-top: none; font-size: 12px; font-weight: 600; text-align: center; }
+.grille-total .grille-nom { text-align: left; font-size: 13px; font-weight: 700; }
+.grille-total.bleu { color: var(--bleu); }
+.grille-total.orange { color: var(--orange-texte); }
+.grille-total .prevision { color: var(--texte2); font-style: italic; }
+/* Le nom de la charge reste visible quand on fait défiler les mois */
+.grille-ligne > :first-child { position: sticky; left: 0; background: var(--carte); z-index: 1; }
+@media (max-width: 600px) {
+  .grille { min-width: 860px; }
+  .grille-ligne { grid-template-columns: 130px repeat(12, minmax(0, 1fr)); }
+  .grille-ligne > :nth-child(2), .grille-ligne > :nth-child(3) { display: none; }
+}
+.grille-groupe { position: sticky; left: 0; width: max-content; background: var(--carte); }
