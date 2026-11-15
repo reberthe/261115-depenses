@@ -1,0 +1,9 @@
+{
+  "name": "Test dépenses",
+  "short_name": "Test dépenses",
+  "start_url": "./ipad.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F2F2F5",
+  "theme_color": "#F2F2F5"
+}
