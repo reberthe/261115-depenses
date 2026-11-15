@@ -52,6 +52,12 @@ function nomMois(mois, avecAnnee = true) {
   return texte.charAt(0).toUpperCase() + texte.slice(1);
 }
 
+// 10 → "octobre" ; avec court = true → "oct."
+function nomDuMois(numero, court = false) {
+  const d = new Date(Date.UTC(2000, numero - 1, 1));
+  return d.toLocaleDateString('fr-BE', { month: court ? 'short' : 'long', timeZone: 'UTC' });
+}
+
 // "2026-11-15" → "15/11"
 function jourCourt(date) {
   return date.slice(8, 10) + '/' + date.slice(5, 7);
@@ -104,7 +110,8 @@ function icone(nom, taille = 20) {
 // En-tête d'un onglet : titre, éléments à gauche et à droite, et le bouton Réglages
 function enTete(titre, aGauche = [], aDroite = []) {
   return el('div', { class: 'entete' },
-    el('div', { class: 'entete-gauche' }, el('h1', { text: titre }), ...aGauche),
+    el('h1', { text: titre }),
+    el('div', { class: 'entete-controles' }, ...aGauche),
     el('div', { class: 'entete-droite' }, ...aDroite,
       el('button', { type: 'button', class: 'bouton-icone', 'aria-label': 'Réglages', onclick: ouvrirReglages }, icone('reglages')))
   );
