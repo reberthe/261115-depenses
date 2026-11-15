@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Test dépenses">
+<link rel="manifest" href="./manifest.json">
+<title>Test dépenses — étape 1</title>
+<style>
+  body { margin: 0; padding: 20px; font-family: -apple-system, system-ui, sans-serif; font-size: 17px; background: #F2F2F5; color: #1C1C1E; }
+  h1 { font-size: 24px; margin: 0 0 16px; }
+  section { background: #FFFFFF; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+  h2 { font-size: 17px; margin: 0 0 8px; }
+  label { display: block; margin: 10px 0 4px; }
+  input { font-size: 18px; height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #C7C7CC; border-radius: 10px; width: 100%; max-width: 320px; }
+  button { font-size: 17px; height: 48px; padding: 0 20px; border: none; border-radius: 999px; background: #2F5FD0; color: #FFFFFF; font-weight: 600; }
+  pre { white-space: pre-wrap; font-size: 14px; background: #F2F2F5; padding: 10px; border-radius: 10px; }
+  .petit { font-size: 14px; color: #5F6068; }
+</style>
+</head>
+<body>
+<h1>Test dépenses — étape 1</h1>
+
+<section>
+  <h2>1. Montants</h2>
+  <label for="montant1">Tape « 12,40 »</label>
+  <input id="montant1" inputmode="decimal" autocomplete="off">
+  <label for="montant2">Tape « 1 234,5 » (avec l'espace)</label>
+  <input id="montant2" inputmode="decimal" autocomplete="off">
+</section>
+
+<section>
+  <h2>2. Date</h2>
+  <label for="date1">Choisis le 24 novembre 2026</label>
+  <input id="date1" type="date">
+</section>
+
+<section>
+  <h2>3. Résultat à copier</h2>
+  <p class="petit">Tourne l'appareil (paysage puis portrait) : les tailles se mettent à jour.</p>
+  <pre id="resultat">Chargement…</pre>
+  <button id="copier" type="button">Copier le résultat</button>
+  <p id="copie" class="petit"></p>
+</section>
+
+<script src="../config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"
+        integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O"
+        crossorigin="anonymous"></script>
+<script>
+  // Résultats regroupés ici, puis affichés en texte brut
+  const resultats = {};
+
+  // Lit un montant tapé en français : "12,40", "1 234,5" → nombre de centimes, ou null
+  function lireMontant(texte) {
+    const propre = texte.trim().replace(/[\s  ]/g, '').replace(',', '.');
+    if (!/^\d{1,7}(\.\d{1,2})?$/.test(propre)) return null;
+    return Math.round(parseFloat(propre) * 100);
+  }
+
+  // Appareil : la vraie version est dans "Version/xx", jamais dans "iPhone OS xx"
+  function infosAppareil() {
+    const ua = navigator.userAgent;
+    const version = (ua.match(/Version\/([\d.]+)/) || [])[1] || 'inconnue';
+    let appareil = 'autre';
+    if (/iPhone/.test(ua)) appareil = 'iPhone';
+    else if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) appareil = 'iPad';
+    const installe = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    resultats.appareil = appareil + ' · iOS/iPadOS ' + version + ' · ' + (installe ? 'appli installée' : 'dans Safari');
+  }
+
+  function infosEcran() {
+    const sens = window.innerWidth > window.innerHeight ? 'paysage' : 'portrait';
+    resultats['écran ' + sens] = window.innerWidth + ' × ' + window.innerHeight + ' (zoom ' + window.devicePixelRatio + ')';
+  }
+
+  function infosDates() {
+    resultats.fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    resultats['heure Bruxelles'] = new Intl.DateTimeFormat('fr-BE', { timeZone: 'Europe/Brussels', dateStyle: 'full', timeStyle: 'short' }).format(new Date());
+  }
+
+  function infosFormat() {
+    const texte = (1234.56).toLocaleString('fr-BE', { style: 'currency', currency: 'EUR' });
+    // Codes des caractères qui ne sont pas des chiffres (pour savoir quel espace est utilisé)
+    const codes = Array.from(texte).filter((c) => !/[0-9]/.test(c)).map((c) => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0'));
+    resultats['format 1234,56'] = texte + '  [' + codes.join(' ') + ']';
+  }
+
+  function infosMemoire() {
+    try {
+      const n = Number(localStorage.getItem('test_ouvertures') || 0) + 1;
+      localStorage.setItem('test_ouvertures', String(n));
+      if (!localStorage.getItem('test_premiere')) localStorage.setItem('test_premiere', new Date().toISOString());
+      resultats.mémoire = 'ouvertures : ' + n + ' · première : ' + localStorage.getItem('test_premiere');
+    } catch (e) {
+      resultats.mémoire = 'stockage indisponible (' + e.name + ')';
+    }
+  }
+
+  function infosSaisie() {
+    const m1 = document.getElementById('montant1').value;
+    const m2 = document.getElementById('montant2').value;
+    const c1 = lireMontant(m1), c2 = lireMontant(m2);
+    resultats['montant 1'] = '« ' + m1 + ' » → ' + (c1 === null ? 'illisible' : c1 + ' centimes');
+    resultats['montant 2'] = '« ' + m2 + ' » → ' + (c2 === null ? 'illisible' : c2 + ' centimes');
+    resultats.date = document.getElementById('date1').value || '(vide)';
+  }
+
+  async function testSupabase() {
+    if (CONFIG.SUPABASE_URL.includes('COLLER-ICI') || CONFIG.SUPABASE_CLE_PUBLIQUE.includes('COLLER-ICI')) {
+      resultats.supabase = 'config.js pas encore rempli';
+      return;
+    }
+    try {
+      const client = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_CLE_PUBLIQUE);
+      const { data, error } = await client.from('test_connexion').select('message').eq('id', 1).single();
+      resultats.supabase = error ? 'ERREUR ' + (error.code || '') + ' : ' + error.message : data.message;
+    } catch (e) {
+      resultats.supabase = 'ERREUR : ' + e.message;
+    }
+  }
+
+  function afficher() {
+    infosEcran();
+    infosSaisie();
+    const lignes = Object.keys(resultats).map((cle) => cle + ' : ' + resultats[cle]);
+    document.getElementById('resultat').textContent = lignes.join('\n');
+  }
+
+  document.getElementById('copier').addEventListener('click', async () => {
+    const texte = document.getElementById('resultat').textContent;
+    try {
+      await navigator.clipboard.writeText(texte);
+      document.getElementById('copie').textContent = 'Copié ✓';
+    } catch (e) {
+      document.getElementById('copie').textContent = 'Copie impossible : sélectionne le texte à la main.';
+    }
+  });
+
+  ['montant1', 'montant2', 'date1'].forEach((id) => document.getElementById(id).addEventListener('input', afficher));
+  window.addEventListener('resize', afficher);
+
+  infosAppareil();
+  infosDates();
+  infosFormat();
+  infosMemoire();
+  afficher();
+  testSupabase().then(afficher);
+</script>
+</body>
+</html>
