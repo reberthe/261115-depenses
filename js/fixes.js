@@ -1,8 +1,9 @@
-// Onglet Fixes : vue Mois (vue Année à la partie suivante)
+// Onglet Fixes : vue Mois (pour cocher) et vue Année (la grille, comme l'Excel)
 
 const fixes = {
   vue: 'mois',          // 'mois' ou 'annee'
   mois: null,           // mois affiché, "AAAA-MM-01"
+  annee: null,          // année affichée dans la vue Année
   depart: null,         // date de départ de l'appli
   aConfirmer: null,     // charge sur laquelle on a touché une fois pour annuler
   minuteur: null,
@@ -31,10 +32,10 @@ async function dessinerFixes() {
   const c = fixes.conteneur;
   const choix = el('div', { class: 'segments', role: 'group', 'aria-label': 'Vue' },
     el('button', { type: 'button', 'aria-pressed': String(fixes.vue === 'mois'), onclick: () => { fixes.vue = 'mois'; dessinerFixes(); } }, 'Mois'),
-    el('button', { type: 'button', 'aria-pressed': String(fixes.vue === 'annee'), onclick: () => { fixes.vue = 'annee'; dessinerFixes(); } }, 'Année'));
+    el('button', { type: 'button', 'aria-pressed': String(fixes.vue === 'annee'), onclick: () => { fixes.vue = 'annee'; fixes.annee = Number(fixes.mois.slice(0, 4)); dessinerFixes(); } }, 'Année'));
 
   if (fixes.vue === 'annee') {
-    c.replaceChildren(enTete('Fixes', [choix]), el('p', { class: 'vide', text: 'La vue Année arrive à la prochaine partie.' }));
+    await dessinerAnnee(c, choix);
     return;
   }
 
@@ -149,7 +150,7 @@ function texteEcheance(l) {
 
 function ligneCharge(l) {
   const paye = l.etat === 'paye';
-  const enAttente = fixes.aConfirmer === l.charge_id;
+  const enAttente = fixes.aConfirmer === l.charge_id + '|' + l.mois;
   const pilule = paye
     ? el('span', { class: 'pilule payee' + (enAttente ? ' a-confirmer' : '') }, enAttente ? 'Annuler ?' : icone('coche', 14), enAttente ? null : 'Payé')
     : el('span', { class: 'pilule cote' }, 'Mis de côté');
@@ -167,11 +168,14 @@ function ligneCharge(l) {
 
 // ---------- Payer et annuler ----------
 
+function toucherCase(x) { toucherLigne(x); } // même comportement dans la grille
+
 async function toucherLigne(l) {
   if (l.etat === 'paye') {
     // Annuler en deux touchers : le premier demande confirmation pendant 4 secondes
-    if (fixes.aConfirmer !== l.charge_id) {
-      fixes.aConfirmer = l.charge_id;
+    const cle = l.charge_id + '|' + l.mois;
+    if (fixes.aConfirmer !== cle) {
+      fixes.aConfirmer = cle;
       clearTimeout(fixes.minuteur);
       fixes.minuteur = setTimeout(() => { fixes.aConfirmer = null; dessinerFixes(); }, 4000);
       dessinerFixes();
@@ -223,4 +227,119 @@ function feuillePayer(l) {
     await payer(l, montant, champDate.value);
   });
   ouvrirFeuille('Payer · ' + l.nom, formulaire);
+}
+
+// ---------- Vue Année ----------
+
+const MOIS_COURTS = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+
+// 26540 → "265" (euros arrondis : la grille doit rester lisible)
+function eurosRonds(centimes) {
+  return Math.round(centimes / 100).toLocaleString('fr-BE');
+}
+
+function texteEcheanceCourt(c) {
+  const carte = c.carte_id ? ' · carte' : '';
+  if (c.echeance_type === 'jour') return (c.echeance_jour ? 'le ' + c.echeance_jour : 'chaque mois') + carte;
+  if (c.echeance_type === 'mois') return nomDuMois(c.echeance_mois) + carte;
+  return 'quand il faut' + carte;
+}
+
+async function dessinerAnnee(c, choix) {
+  if (!fixes.annee) fixes.annee = Number(fixes.mois.slice(0, 4));
+  const premiereAnnee = Number(fixes.depart.slice(0, 4));
+  const derniereAnnee = Number(aujourdhui().slice(0, 4)) + 1;
+  const selecteur = el('div', { class: 'selecteur-mois' },
+    el('button', { type: 'button', class: 'bouton-icone', 'aria-label': 'Année précédente', disabled: fixes.annee <= premiereAnnee,
+      onclick: () => { fixes.annee -= 1; dessinerFixes(); } }, icone('gauche')),
+    el('span', { class: 'selecteur-texte annee' }, String(fixes.annee)),
+    el('button', { type: 'button', class: 'bouton-icone', 'aria-label': 'Année suivante', disabled: fixes.annee >= derniereAnnee,
+      onclick: () => { fixes.annee += 1; dessinerFixes(); } }, icone('droite')));
+  const legende = el('div', { class: 'legende' },
+    el('span', {}, el('span', { class: 'temoin payee' }), 'Payé'),
+    el('span', {}, el('span', { class: 'temoin cote' }), 'Mis de côté'),
+    el('span', {}, el('span', { class: 'temoin point' }), 'Échéance'));
+
+  // Toutes les cases depuis le départ jusqu'à décembre de l'année affichée (pour la réserve de fin de mois)
+  const fin = fixes.annee + '-12-01';
+  const [cases, ajustements] = await Promise.all([
+    demanderTout(() => client.from('v_charges_grille').select('*')
+      .gte('mois', fixes.depart).lte('mois', fin).order('mois').order('ordre').order('charge_id')),
+    demander(client.from('reserve_ajustements').select('date, montant'))
+  ]);
+  if (cases === null || ajustements === null) return;
+
+  const mois = Array.from({ length: 12 }, (_, i) => fixes.annee + '-' + String(i + 1).padStart(2, '0') + '-01');
+  const moisCourant = moisDe(aujourdhui());
+
+  // Une ligne par charge, avec ses cases de l'année
+  const charges = new Map();
+  cases.filter((x) => x.mois.slice(0, 4) === String(fixes.annee)).forEach((x) => {
+    if (!charges.has(x.charge_id)) charges.set(x.charge_id, { info: x, cases: {} });
+    charges.get(x.charge_id).cases[x.mois] = x;
+  });
+  const lignes = [...charges.values()].sort((a, b) => a.info.ordre - b.info.ordre || a.info.charge_id - b.info.charge_id);
+
+  // Totaux par mois et réserve en fin de mois
+  const paye = mois.map((m) => cases.filter((x) => x.mois === m && x.etat === 'paye').reduce((s, x) => s + x.montant, 0));
+  const cote = mois.map((m) => cases.filter((x) => x.mois === m && x.etat === 'cote').reduce((s, x) => s + x.montant, 0));
+  const reserve = mois.map((m) => {
+    const finMois = ajouterMois(m, 1); // on compare avec « avant le 1er du mois suivant »
+    return ajustements.filter((a) => a.date < finMois).reduce((s, a) => s + a.montant, 0)
+      + cases.filter((x) => x.etat === 'cote' && x.mois <= m).reduce((s, x) => s + x.montant, 0)
+      - cases.filter((x) => x.etat === 'paye' && x.echeance_type !== 'jour' && x.date_paiement < finMois).reduce((s, x) => s + x.montant, 0);
+  });
+
+  // En-tête des colonnes : toucher un mois ouvre la vue Mois
+  const entete = el('div', { class: 'grille-ligne grille-entete' },
+    el('span', { text: 'Charge' }), el('span', { class: 'a-droite', text: 'Prévu' }), el('span', { text: 'Échéance' }),
+    ...mois.map((m, i) => el('button', {
+      type: 'button', class: 'grille-mois' + (m === moisCourant ? ' courant' : ''), disabled: !moisPermis(m),
+      'aria-label': 'Voir ' + nomMois(m), onclick: () => { fixes.mois = m; fixes.vue = 'mois'; dessinerFixes(); }
+    }, MOIS_COURTS[i])));
+
+  const corps = [];
+  let groupe = null;
+  lignes.forEach((ligne) => {
+    if (ligne.info.groupe !== groupe) {
+      groupe = ligne.info.groupe;
+      corps.push(el('div', { class: 'grille-groupe', text: groupe }));
+    }
+    const prevu = ligne.cases[moisCourant] || Object.values(ligne.cases)[0];
+    corps.push(el('div', { class: 'grille-ligne' },
+      el('span', { class: 'grille-nom', text: ligne.info.nom }),
+      el('span', { class: 'a-droite chiffre grille-prevu', text: euros(prevu.montant) }),
+      el('span', { class: 'grille-echeance', text: texteEcheanceCourt(ligne.info) }),
+      ...mois.map((m) => caseAnnee(ligne.cases[m]))));
+  });
+
+  const totaux = el('div', { class: 'grille-totaux' },
+    ligneTotal('Payé', paye, 'bleu'),
+    ligneTotal('Mis de côté', cote, 'orange'),
+    ligneTotal('Réserve fin de mois', reserve, '', mois.map((m) => m > moisCourant)));
+
+  c.replaceChildren(
+    enTete('Fixes', [choix, selecteur]),
+    legende,
+    lignes.length === 0
+      ? el('p', { class: 'vide', text: 'Aucune charge cette année-là (l\'appli démarre en ' + nomMois(fixes.depart).toLowerCase() + ').' })
+      : el('div', { class: 'carte grille-cadre' }, el('div', { class: 'grille' }, entete, ...corps, totaux)));
+}
+
+function caseAnnee(x) {
+  if (!x) return el('span', { class: 'case vide-case', 'aria-hidden': 'true' });
+  const paye = x.etat === 'paye';
+  const enAttente = paye && fixes.aConfirmer === x.charge_id + '|' + x.mois;
+  return el('button', {
+    type: 'button',
+    class: 'case ' + (paye ? 'payee' : 'cote') + (enAttente ? ' a-confirmer' : ''),
+    'aria-label': x.nom + ', ' + nomMois(x.mois) + ', ' + euros(x.montant) + ', ' + (paye ? 'payé' : 'mis de côté') + (x.mois_echeance ? ', mois de l\'échéance' : ''),
+    onclick: () => toucherCase(x)
+  }, enAttente ? '?' : eurosRonds(x.montant), x.mois_echeance ? el('span', { class: 'point-echeance', 'aria-hidden': 'true' }) : null);
+}
+
+function ligneTotal(titre, valeurs, couleur, previsions = []) {
+  return el('div', { class: 'grille-ligne grille-total ' + couleur },
+    el('span', { class: 'grille-nom', text: titre }), el('span'), el('span'),
+    ...valeurs.map((v, i) => el('span', { class: 'chiffre' + (previsions[i] ? ' prevision' : ''), text: eurosRonds(v) })));
 }

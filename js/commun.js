@@ -150,6 +150,18 @@ function texteErreur(erreur) {
   return m;
 }
 
+// Lit toutes les lignes par paquets de 1 000 (la limite de Supabase par demande).
+// "construire" fabrique la requête, avec un ordre stable (sinon des lignes peuvent sauter d'un paquet à l'autre).
+async function demanderTout(construire) {
+  let tout = [];
+  for (let debut = 0; ; debut += 1000) {
+    const paquet = await demander(construire().range(debut, debut + 999));
+    if (paquet === null) return null;
+    tout = tout.concat(paquet);
+    if (paquet.length < 1000) return tout;
+  }
+}
+
 // Lance une requête Supabase ; en cas d'erreur, affiche un message et renvoie null
 async function demander(requete) {
   try {
