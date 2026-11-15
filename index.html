@@ -10,6 +10,16 @@
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <title>Dépenses</title>
 <link rel="stylesheet" href="style.css?v=1">
+<script>
+  // Si un fichier manque ou plante au démarrage, on l'affiche au lieu de rester sur « Chargement… »
+  window.addEventListener('error', (e) => {
+    const c = document.getElementById('chargement');
+    if (!c || c.hidden || c.dataset.erreur) return; // on garde la première erreur, c'est la cause
+    c.dataset.erreur = '1';
+    const fichier = e.target && (e.target.src || e.target.href);
+    c.textContent = fichier ? 'Fichier introuvable ou refusé : ' + fichier : 'Erreur au démarrage : ' + e.message;
+  }, true);
+</script>
 </head>
 <body>
 
