@@ -1,0 +1,157 @@
+/* Couleurs : clair par défaut, sombre si l'appareil est en mode sombre */
+:root {
+  color-scheme: light dark;
+  --fond: #F2F2F5;
+  --carte: #FFFFFF;
+  --texte: #1C1C1E;
+  --texte2: #5F6068;
+  --trait: #E3E3E8;
+  --trait-leger: #F0F0F4;
+  --bleu: #2F5FD0;
+  --sur-bleu: #FFFFFF;
+  --orange-fond: #FFF4E0;
+  --orange-trait: #B26A00;
+  --orange-texte: #8A4F00;
+  --fonce: #1C1C1E;
+  --sur-fonce: #FFFFFF;
+  --erreur: #B3261E;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #000000;
+    --carte: #1C1C1E;
+    --texte: #F2F2F7;
+    --texte2: #A1A1A8;
+    --trait: #38383A;
+    --trait-leger: #2C2C2E;
+    --bleu: #5B86F2;
+    --sur-bleu: #FFFFFF;
+    --orange-fond: #3A2A10;
+    --orange-trait: #E0A040;
+    --orange-texte: #F2C27A;
+    --fonce: #F2F2F7;
+    --sur-fonce: #1C1C1E;
+    --erreur: #FF6B60;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: -apple-system, system-ui, sans-serif;
+  background: var(--fond);
+  color: var(--texte);
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+button, input, select { font: inherit; color: inherit; }
+input, select {
+  font-size: 17px; /* 16 px minimum : sinon l'iPhone zoome dans le champ */
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--trait);
+  border-radius: 10px;
+  background: var(--carte);
+  width: 100%;
+}
+.chiffre { font-variant-numeric: tabular-nums; }
+
+.chargement { padding: 40px; text-align: center; color: var(--texte2); }
+
+/* Connexion */
+.ecran-connexion { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.connexion { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px; }
+.connexion h1 { margin: 0 0 12px; font-size: 28px; }
+.connexion button { margin-top: 12px; }
+.erreur { color: var(--erreur); min-height: 1.2em; margin: 4px 0 0; }
+
+/* Mise en page */
+#appli { display: flex; flex-direction: column; height: 100dvh; }
+#contenu {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(env(safe-area-inset-top) + 16px) 24px 16px;
+}
+.carte { background: var(--carte); border-radius: 16px; padding: 16px; }
+
+.entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.entete-gauche, .entete-droite { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.entete h1 { margin: 0; font-size: 28px; }
+
+/* Boutons */
+.bouton-principal {
+  height: 44px; padding: 0 20px; border: none; border-radius: 999px;
+  background: var(--bleu); color: var(--sur-bleu); font-weight: 600; cursor: pointer;
+}
+.bouton-fonce {
+  height: 44px; padding: 0 20px; border: none; border-radius: 999px;
+  background: var(--fonce); color: var(--sur-fonce); font-weight: 600; cursor: pointer;
+}
+.bouton-secondaire {
+  height: 44px; padding: 0 16px; border: 1.5px solid var(--trait); border-radius: 999px;
+  background: var(--carte); font-weight: 600; cursor: pointer;
+}
+.bouton-danger {
+  height: 44px; padding: 0 16px; border: none; background: none; color: var(--erreur); font-weight: 600; cursor: pointer;
+}
+.bouton-texte { height: 44px; padding: 0 8px; border: none; background: none; color: var(--bleu); font-size: 17px; cursor: pointer; }
+.bouton-icone {
+  width: 44px; height: 44px; border: none; border-radius: 999px; background: var(--carte);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+button:disabled { opacity: 0.5; cursor: default; }
+
+/* Choix à deux ou trois positions (Mois | Année) */
+.segments { display: inline-flex; background: var(--trait); border-radius: 999px; padding: 4px; }
+.segments button { height: 40px; padding: 0 18px; border: none; border-radius: 999px; background: none; cursor: pointer; }
+.segments button[aria-pressed="true"] { background: var(--carte); font-weight: 600; }
+
+/* Barre d'onglets */
+.onglets {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  background: var(--carte); border-top: 1px solid var(--trait);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.onglets button {
+  height: 56px; border: none; background: none; color: var(--texte2); font-size: 12px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.onglets button[aria-current="page"] { color: var(--bleu); font-weight: 600; }
+
+/* Feuille par-dessus l'écran */
+.feuille-fond {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 10;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.feuille {
+  width: 100%; max-width: 640px; max-height: calc(100dvh - 40px);
+  background: var(--fond); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden;
+}
+.feuille-haut {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; background: var(--carte); border-bottom: 1px solid var(--trait);
+}
+.feuille-haut h2 { margin: 0; font-size: 17px; text-align: center; flex: 1; }
+.feuille-place { width: 64px; }
+.feuille-corps { padding: 16px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Message temporaire */
+.message {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 72px);
+  max-width: calc(100% - 32px); margin: 0; padding: 12px 18px; border-radius: 12px;
+  background: var(--fonce); color: var(--sur-fonce); z-index: 20; text-align: center;
+}
+.message.erreur-message { background: var(--erreur); color: #FFFFFF; }
+
+.vide { color: var(--texte2); text-align: center; padding: 40px 0; }
+
+/* iPhone et iPad en portrait étroit */
+@media (max-width: 600px) {
+  #contenu { padding-left: 16px; padding-right: 16px; }
+  .entete h1 { font-size: 24px; }
+  .feuille-fond { align-items: flex-end; padding: 0; }
+  .feuille { max-width: none; border-radius: 20px 20px 0 0; max-height: 92dvh; }
+}
