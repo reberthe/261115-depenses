@@ -76,9 +76,13 @@ input, select {
 }
 .carte { background: var(--carte); border-radius: 16px; padding: 16px; }
 
-.entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.entete-gauche, .entete-droite { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.entete h1 { margin: 0; font-size: 28px; }
+.entete {
+  display: grid; grid-template-columns: auto auto 1fr auto; grid-template-areas: "titre controles . droite";
+  align-items: center; gap: 12px 20px; margin-bottom: 16px;
+}
+.entete h1 { grid-area: titre; margin: 0; font-size: 28px; }
+.entete-controles { grid-area: controles; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.entete-droite { grid-area: droite; display: flex; align-items: center; gap: 12px; }
 
 /* Boutons */
 .bouton-principal {
@@ -151,7 +155,68 @@ button:disabled { opacity: 0.5; cursor: default; }
 /* iPhone et iPad en portrait étroit */
 @media (max-width: 600px) {
   #contenu { padding-left: 16px; padding-right: 16px; }
+  .entete { grid-template-columns: 1fr auto; grid-template-areas: "titre droite" "controles controles"; }
   .entete h1 { font-size: 24px; }
   .feuille-fond { align-items: flex-end; padding: 0; }
   .feuille { max-width: none; border-radius: 20px 20px 0 0; max-height: 92dvh; }
+}
+
+/* ---------- Onglet Fixes ---------- */
+.selecteur-mois { display: inline-flex; align-items: center; gap: 4px; background: var(--carte); border-radius: 999px; padding: 2px; }
+.selecteur-texte { min-width: 150px; text-align: center; font-weight: 600; }
+
+.resume { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.chiffre-carte { padding: 12px 16px; }
+.chiffre-titre { font-size: 13px; color: var(--texte2); }
+.chiffre-valeur { font-size: 22px; font-weight: 700; }
+.chiffre-carte.bleu .chiffre-valeur { color: var(--bleu); }
+.chiffre-carte.orange .chiffre-valeur { color: var(--orange-texte); }
+.chiffre-carte.fonce { background: var(--fonce); }
+.chiffre-carte.fonce .chiffre-titre, .chiffre-carte.fonce .chiffre-valeur { color: var(--sur-fonce); }
+
+.bandeau { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; }
+.bandeau-titre { flex-shrink: 0; font-weight: 700; font-size: 14px; margin-right: 4px; }
+.pastille {
+  flex-shrink: 0; height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px;
+  border-radius: 999px; background: var(--carte); font-size: 13px; white-space: nowrap;
+}
+.pastille.urgente { background: var(--orange-fond); border: 1.5px solid var(--orange-trait); color: var(--orange-texte); }
+
+.colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.colonne { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.groupe { padding: 4px 8px 6px; }
+.groupe-haut { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 12px 10px 8px; }
+.groupe-haut h2 { margin: 0; font-size: 16px; }
+.groupe-resume { font-size: 13px; color: var(--texte2); }
+
+.ligne {
+  width: 100%; min-height: 52px; display: flex; align-items: center; gap: 12px;
+  border: none; border-top: 1px solid var(--trait-leger); background: none; padding: 6px 10px;
+  text-align: left; cursor: pointer;
+}
+.ligne-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ligne-nom { font-size: 15px; }
+.ligne-detail { font-size: 12px; color: var(--texte2); }
+.ligne-montant { font-size: 15px; width: 96px; text-align: right; flex-shrink: 0; }
+.pilule {
+  width: 118px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 999px; font-size: 13px; font-weight: 600;
+}
+.pilule.payee { background: var(--bleu); color: var(--sur-bleu); }
+.pilule.payee.a-confirmer { background: var(--erreur); color: #FFFFFF; }
+.pilule.cote { background: var(--orange-fond); border: 1.5px dashed var(--orange-trait); color: var(--orange-texte); }
+
+.formulaire { display: flex; flex-direction: column; gap: 8px; }
+.formulaire button[type="submit"] { margin-top: 8px; }
+.aide { margin: 0; color: var(--texte2); font-size: 14px; }
+
+@media (max-width: 900px) {
+  .colonnes { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .resume { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chiffre-valeur { font-size: 18px; }
+  .pilule { width: 96px; }
+  .ligne-montant { width: 80px; }
+  .selecteur-texte { min-width: 120px; }
 }
